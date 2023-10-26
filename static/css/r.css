@@ -1,0 +1,41 @@
+.s{
+	height:15px;
+	font-size:15px;
+}
+#myc{
+	height:120px;
+	position:relative;
+}
+.card{
+	width:71px;
+	height:100px;
+	border:1px solid #000;
+	writing-mode:vertical-lr;
+	text-orientation:upright;
+	-webkit-user-select:none;
+	-moz-user-select:none;
+	-ms-user-select:none;
+	user-select:none; 
+	display:inline-block;
+	background-color:#fff;
+	top:20px;
+}
+.card_select{
+	top:0px;
+	/* background-color:#ffe; */
+}
+
+.rc{
+	color:#f00;
+}
+.bc{
+	color:#000;
+}
+#btns{
+	height:25px;
+}
+.btn{
+	width:75px;
+	border:1px solid #777;
+	border-radius:2px;
+}

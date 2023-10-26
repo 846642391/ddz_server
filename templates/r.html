@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>斗地主</title>
+		<link rel="stylesheet" type="text/css" href="/static/css/r.css">
+    </head>
+    <body>
+		<div class="player" id="div_up">
+			<span>上家:</span>
+			<span id="name_up"></span>
+			<span id="dzpd_up"></span>
+			<span>剩余手牌:</span>
+			<span id="card_up"></span>
+			<span>分数:</span>
+			<span id="fs_up"></span>
+			<br>
+			<div class="s" id="s_up"></div>
+		</div>
+		<div class="player" id="div_my">
+			<span>您:</span>
+			<span id="name_my"></span>
+			<span id="dzpd_my"></span>
+			<span>剩余手牌:</span>
+			<span id="card_my"></span>
+			<span>分数:</span>
+			<span id="fs_my"></span>
+			<br>
+			<div class="s" id="s_my"></div>
+		</div>
+		<div class="player" id="div_dn">
+			<span>下家:</span>
+			<span id="name_dn"></span>
+			<span id="dzpd_dn"></span>
+			<span>剩余手牌:</span>
+			<span id="card_dn"></span>
+			<span>分数:</span>
+			<span id="fs_dn"></span>
+			<br>
+			<div class="s" id="s_dn"></div>
+		</div>
+		<div id="inform">
+			<span>
+				<span>操作剩余时间:</span>
+				<span id="rtime"></span>
+			</span>
+			<span>
+				<span>地主牌:</span>
+				<span id="dzcard"></span>
+			</span>
+			<span>
+				<span>倍数:</span>
+				<span id="bs"></span>
+			</span>
+			<span>
+				<span>(底分:</span>
+				<span id="df">{{df}}</span>
+				<span>)</span>
+			</span>
+		</div>
+		<div id="btns">
+			<button class="btn" id="btn1" onclick="fbtn1()" style="display:none;">出牌</button>
+			<button class="btn" id="btn2" onclick="fbtn2()" style="display:none;">明牌</button>
+			<button class="btn" id="btn4" onclick="fbtn4()" style="display:none;">取消</button>
+			<button class="btn" id="btn8" onclick="fbtn8()" style="display:none;">加倍</button>
+			<button class="btn" id="btn16" onclick="fbtn16()" style="display:none;">超级加倍</button>
+			<button class="btn" id="btn32" onclick="fbtn32()" style="display:none;">叫地主</button>
+			<button class="btn" id="btn64" onclick="fbtn64()" style="display:none;">抢地主</button>
+			<button class="btn" id="btn128" onclick="fbtn128()" style="display:none;">准备</button>
+			
+		</div>
+		<div id="myc"></div>
+		<div id="warn" class="rc"></div>
+		<div>
+			<a href="/help">帮助页面</a>
+			<a href="https://github.com/846642391/ddz_server">GitHub</a>
+		</div>
+		<script type="text/javascript">
+			let mid={{mid}};
+			let msgid={{msgid}};
+		</script>
+        <script type="text/javascript" src="/static/js/jquery.js"></script>
+		<script type="text/javascript" src="/static/js/r.js"></script>
+		<script type="text/javascript" src="/static/js/btns.js"></script>
+    </body>
+</html>
