@@ -10,6 +10,7 @@ import logging;
 from configparser import ConfigParser;
 import os;
 import pdpdz;
+import copy;
 
 
 
@@ -42,13 +43,8 @@ cardl=[
 
 app=Flask(__name__);
 app.secret_key="secret_key";
-# app.debug=1;
 log=logging.getLogger('werkzeug');
 log.setLevel(logging.WARNING);
-pdp_pyc_sha1="c1312f99c131cb0a2a3966c74e9a0f6c937480e9";
-conf=ConfigParser();
-inifile=sys.argv[1]if len(sys.argv)>2 else "ddz.ini";
-conf.read(inifile,encoding="utf-8");
 password="";
 
 
@@ -84,21 +80,34 @@ dzcp=0;
 nmcp=0;
 ip="0.0.0.0";
 port=80;
+gsave=1;
 modifynotice="";
-bjini="[option]\nip=0.0.0.0\nport=80\ndf=1\nbs=15\npassword=\ntime_1=20\ntime_2=20\ntime_3=30\ntime_0=3\n#用ip设置开服地址,用port设置开服端口,用df设置服务器底分,用bs设置服务器初始倍数,time_(1,2,3,0)分别为叫地主时间,加倍时间,出牌时间和环节间隔时间\n";
+saves=[];
+playerban=[];
+ipban=[];
+enablewhitelist=0;
+playerwhite=[];
+ipwhite=[];
+fnm="0000_00_00_00_00_00.html";
+bjini="[option]\nip=0.0.0.0\nport=80\ndf=1\nbs=15\npassword=\ntime_1=20\ntime_2=20\ntime_3=30\ntime_0=3\ngsave=1\nplayerban=\nipban=\nenablewhitelist=0\nplayerwhite=\nipwhite=\n";
 
 
 
-def readini():
-	global conf,ip,port,df,bsc,password;
+def readini(cz=0):
+	global ip,port,df,bsc,password,gsave,playerban,ipban,enablewhitelist,playerwhite,ipwhite;
+	conf=ConfigParser();
+	inifile=sys.argv[1]if len(sys.argv)>=2 else "ddz.ini";
+	conf.read(inifile,encoding="utf-8");
 	if(not os.path.exists(inifile)):
-		logging.warning("Given initialization file do not exist. Creating.");
+		logging.warning("Given initialization file do not exist. Created.");
 		t=open(inifile,"w",encoding="utf-8");
 		t.write(bjini);
 		t.close();
 	if(conf.has_section("option")):
-		ip=conf["option"]["ip"]if conf.has_option("option","ip")else"0.0.0.0";
-		port=conf["option"].getint("port")if conf.has_option("option","port")else 80;
+		if(not cz):
+			ip=conf["option"]["ip"]if conf.has_option("option","ip")else"0.0.0.0";
+			port=conf["option"].getint("port")if conf.has_option("option","port")else 80;
+			print("Process is running on %s:%d"%(ip,port));
 		df=conf["option"].getint("df")if conf.has_option("option","df")else 1;
 		bsc=conf["option"].getint("bs")if conf.has_option("option","bs")else 15;
 		time_0=conf["option"]["time_0"]if conf.has_option("option","time_0")else 3;
@@ -106,7 +115,12 @@ def readini():
 		time_2=conf["option"]["time_2"]if conf.has_option("option","time_2")else 20;
 		time_3=conf["option"]["time_3"]if conf.has_option("option","time_3")else 30;
 		password=conf["option"]["password"]if conf.has_option("option","password")else"";
-	logging.warning("Process is running on %s:%d"%(ip,port));
+		gsave=conf["option"].getint("gsave")if conf.has_option("option","gsave")else 1;
+		playerban=conf["option"]["playerban"].split()if conf.has_option("option","playerban")else[];
+		ipban=conf["option"]["ipban"].split()if conf.has_option("option","ipban")else[];
+		enablewhitelist=conf["option"].getint("enablewhitelist")if conf.has_option("option","enablewhitelist")else 0;
+		playerwhite=conf["option"]["playerwhite"].split()if conf.has_option("option","playerwhite")else[];
+		ipwhite=conf["option"]["ipwhite"].split()if conf.has_option("option","ipwhite")else[];
 	return;
 
 def ASync(f):
@@ -134,6 +148,7 @@ def disconnect_player():
 			if(i is None):continue;
 			if(get_time()-i["last_active"]>5000 and is_start==0):
 				sendsysmsg("sp");
+				print("%s left the game."%i["name"]);
 				player_list[player_list.index(i)]=None;
 		sleep(5);
 
@@ -151,7 +166,7 @@ def mpcomment(idx):
 		ret+="%s "%cardt[i];
 	return ret;
 def qf(typ=0):
-	global player_list,is_start,sub_process,tempdz,end_time,dzp,playercard,nplayercard,gp,lc,bs,is_fst,qdzid,dzj,dzt,jbs,dzcp,nmcp;
+	global player_list,is_start,sub_process,tempdz,end_time,dzp,playercard,nplayercard,gp,lc,bs,is_fst,qdzid,dzj,dzt,jbs,dzcp,nmcp,saves;
 	sub_process=(-1,-1);
 	is_start=0;
 	if(typ==0):
@@ -183,15 +198,55 @@ def qf(typ=0):
 	nmcp=0;
 	end_time=0;
 	dzp=[];
+	saves=[];
 
 
+def saveg(typ=0,nam="",lcd=[],dcd=[],msg=""):
+	if(not gsave):
+		return;
+	saves.append({"typ":typ,"nam":nam,"lcd":lcd,"dcd":dcd,"msg":msg});
+
+def getsavehtml(fnm):
+	if(not gsave):return;
+	if(not os.path.exists("./replay")):
+		os.mkdir("./replay");
+	fnm="./replay/"+fnm;
+	html=open(fnm,"w",encoding="utf-8");
+	html.write("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>回放</title><style>.bc{color:#000;}.rc{color:#f00;}</style></head><body>");
+	for d in saves:
+		flcd=get_ct(d["lcd"]).replace("[B]","<span class=\"bc\">").replace("[R]","<span class=\"rc\">").replace("[/]","</span>");
+		fdcd=get_ct(d["dcd"]).replace("[B]","<span class=\"bc\">").replace("[R]","<span class=\"rc\">").replace("[/]","</span>");
+		if(d["typ"]==0):
+			html.write("<div><div><span>玩家:%s</span><span>&#160;剩余:</span><span>%s</span></div><div><span>%s</span></div><div><span>%s</span></div></div>"%(d["nam"],flcd,fdcd,d["msg"]));
+		elif(d["typ"]==1):
+			html.write("<div><span>%s</span><span>%s</span></div>"%(d["msg"],fdcd));
+	html.write("<div><a href=\"https://github.com/846642391/ddz_server\">GitHub</a></div><div><span>要保存此界面，请按下Ctrl+S。</span></div></body></html>");
+	html.close();
+	return;
 @ASync
 def game():
-	global player_list,is_start,sub_process,tempdz,end_time,dzp,playercard,nplayercard,gp,lc,bs,is_fst,qdzid,dzj,dzt,jbs,dzcp,nmcp;
+	global player_list,is_start,sub_process,tempdz,end_time,dzp,playercard,nplayercard,gp,lc,bs,is_fst,qdzid,dzj,dzt,jbs,dzcp,nmcp,fnm;
 	randomcard=random.sample(cardl,54);
+	print("Game started.");
 	player_list[0]["card"]=sorted(randomcard[0:17],reverse=1);
 	player_list[1]["card"]=sorted(randomcard[17:34],reverse=1);
 	player_list[2]["card"]=sorted(randomcard[34:51],reverse=1);
+	ft=datetime.now().strftime("%Y-%m-%d %H:%M:%S");
+	fnm=datetime.now().strftime("%Y_%m_%d_%H_%M_%S.html");
+	saveg(1,msg="开始时间:%s"%ft);
+	saveg(1,
+		msg="玩家: %s(%s)，%s(%s)，%s(%s)"%(
+			player_list[0]["name"],player_list[0]["ip"],
+			player_list[1]["name"],player_list[1]["ip"],
+			player_list[2]["name"],player_list[2]["ip"]
+		)
+	);
+	lcd0=copy.deepcopy(player_list[0]["card"]);
+	lcd1=copy.deepcopy(player_list[1]["card"]);
+	lcd2=copy.deepcopy(player_list[2]["card"]);
+	saveg(0,player_list[0]["name"],lcd0);
+	saveg(0,player_list[1]["name"],lcd1);
+	saveg(0,player_list[2]["name"],lcd2);
 	dzp=randomcard[51:54];
 	rl=random.randint(0,2);
 	is_start=1;
@@ -215,13 +270,18 @@ def game():
 		if(end_time-get_time()<0):
 			tempdz[rl]=0;
 			player_list[rl]["content"]="不叫"if not djt else"不抢";
+			lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+			saveg(0,player_list[i]["name"],lcd,[],"不叫"if not djt else"不抢");
 		if(tempdz[rl]==4):
 			djt=1;
 		rl=(rl+1)%3;
 	rl=tempdz.index(max(tempdz))if dzj else rl;
 	player_list[rl]["is_dz"]=1;
 	player_list[rl]["card"]=sorted(player_list[rl]["card"]+dzp,reverse=1);
-	bs*=pdpdz.verify(dzp);
+	ffe=pdpdz.verify(dzp);
+	bs*=ffe;
+	saveg(1,dcd=dzp,msg="地主牌");
+	saveg(1,msg="(倍数*%d)"%ffe if ffe!=1 else"");
 	sendsysmsg("sp");
 	sendsysmsg("gd");
 	sendsysmsg("gc");
@@ -240,6 +300,8 @@ def game():
 	for i in range(3):
 		if(jbs[i]==-1):
 			player_list[i]["content"]="不加倍";
+			lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+			saveg(0,player_list[i]["name"],lcd,[],"不加倍");
 	sendsysmsg("gb");
 	sub_process=(3,-1);
 	end_time=get_time(time_0*1000);
@@ -265,9 +327,13 @@ def game():
 				playercard=pdp.verify(gvrg);
 				gp=0;
 				player_list[rl]["content"]=get_ct(gvrg);
+				lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+				saveg(0,player_list[i]["name"],lcd,gvrg,"");
 				del player_list[rl]["card"][-1];
 			else:
 				player_list[rl]["content"]="不出";
+				lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+				saveg(0,player_list[rl]["name"],lcd,[],"不出");
 				gp+=1;
 		if(len(player_list[rl]["card"])==0):
 			break;
@@ -282,6 +348,7 @@ def game():
 	player_list[(rl-1)%3]["content"]=get_ct(player_list[(rl-1)%3]["card"]);
 	player_list[(rl+1)%3]["content"]=get_ct(player_list[(rl+1)%3]["card"]);
 	dfl=[0,0,0];
+	print("Game ended.");
 	if(dzsl):
 		for i in range(3):
 			if(player_list[i]["is_dz"]):
@@ -290,8 +357,9 @@ def game():
 				dfl[i]=-bs*df;
 			player_list[i]["point"]+=dfl[i];
 		if(nmcp==0):
-			bs<<=2;
+			bs<<=1;
 			player_list[rl]["content"]+="|春天"
+			saveg(1,msg="地主春天(倍数*2)");
 	if(not dzsl):
 		for i in range(3):
 			if(player_list[i]["is_dz"]):
@@ -300,11 +368,23 @@ def game():
 				dfl[i]=bs*df;
 			player_list[i]["point"]+=dfl[i];
 		if(dzcp==1):
-			bs<<=2;
+			bs<<=1;
 			player_list[rl]["content"]+="|春天"
+			saveg(1,msg="农民春天(倍数*2)");
 	player_list[0]["content"]+="|得分:%d"%dfl[0];
 	player_list[1]["content"]+="|得分:%d"%dfl[1];
 	player_list[2]["content"]+="|得分:%d"%dfl[2];
+	ft=datetime.now().strftime("%Y-%m-%d %H:%M:%S");
+	saveg(1,msg="结束时间:%s"%ft);
+	saveg(1,
+		msg="玩家得分: %s:%d分(总计%d分)，%s:%d分(总计%d分)，%s:%d分(总计%d分)"%(
+			player_list[0]["name"],dfl[0],player_list[0]["point"],
+			player_list[1]["name"],dfl[1],player_list[1]["point"],
+			player_list[2]["name"],dfl[2],player_list[2]["point"]
+		)
+	);
+	print(saves);
+	getsavehtml(fnm);
 	sendsysmsg("gf");
 	end_time=0;
 	sendsysmsg("sp");
@@ -416,28 +496,36 @@ def gm_cancel():
 		player_list[session["index"]]["content"]="";
 		sendsysmsg("sp");
 		sendsysmsg("gb");
+	lcd=copy.deepcopy(player_list[session["index"]]["card"]);
 	if(is_start and sub_process==(1,session["index"])and not dzj):
 		tempdz[session["index"]]=0;
 		player_list[session["index"]]["content"]="不叫";
+		saveg(0,player_list[session["index"]]["name"],lcd,[],"不叫");
 	if(is_start and sub_process==(1,session["index"])and dzj):
 		tempdz[session["index"]]=0;
 		player_list[session["index"]]["content"]="不抢";
+		saveg(0,player_list[session["index"]]["name"],lcd,[],"不抢");
 	if(is_start and sub_process==(2,0)):
 		jbs[session["index"]]=1;
 		player_list[session["index"]]["content"]="不加倍";
+		saveg(0,player_list[session["index"]]["name"],lcd,[],"不加倍");
 	if(is_start and sub_process==(3,session["index"])and gp<2):
 		player_list[session["index"]]["content"]="不出";
+		saveg(0,player_list[session["index"]]["name"],lcd,[],"不出");
 		gp+=1;
 		lc+=1;
 	return jsonify({});
 
 @app.route("/gm/jdz",methods=["GET"])
 def gm_jdz():
-	global tempdz,dzj,dzt;
+	global tempdz,dzj,dzt,bs;
 	if(is_start and sub_process==(1,session["index"])and not dzj):
 		tempdz[session["index"]]=4;
 		player_list[session["index"]]["content"]="叫地主";
+		lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+		saveg(0,player_list[session["index"]]["name"],lcd,[],"叫地主(倍数*2)");
 		dzj=1;
+		bs<<=1;
 		dzt=session["index"];
 	return jsonify({});
 
@@ -449,6 +537,8 @@ def gm_qdz():
 		qdzid+=1;
 		bs<<=1;
 		player_list[session["index"]]["content"]="抢地主";
+		lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+		saveg(0,player_list[session["index"]]["name"],lcd,[],"抢地主(倍数*2)");
 	return jsonify({});
 
 @app.route("/gm/jb",methods=["GET"])
@@ -458,6 +548,8 @@ def jb():
 		jbs[session["index"]]=2;
 		bs<<=1;
 		player_list[session["index"]]["content"]="加倍";
+		lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+		saveg(0,player_list[session["index"]]["name"],lcd,[],"加倍(倍数*2)");
 	return jsonify({});
 
 @app.route("/gm/cjjb",methods=["GET"])
@@ -467,6 +559,8 @@ def cjjb():
 		jbs[session["index"]]=4;
 		bs<<=2;
 		player_list[session["index"]]["content"]="超级加倍";
+		lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+		saveg(0,player_list[session["index"]]["name"],lcd,[],"超级加倍(倍数*4)");
 	return jsonify({});
 
 @app.route("/gm/mp",methods=["GET"])
@@ -476,6 +570,8 @@ def mp():
 		player_list[session["index"]]["is_mp"]=1;
 		bs<<=1;
 		player_list[session["index"]]["content"]+="|明牌:"+get_ct(player_list[session["index"]]["card"]);
+		lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+		saveg(0,player_list[session["index"]]["name"],lcd,[],"明牌(倍数*2)");
 		sendsysmsg("sp");
 		sendsysmsg("gb");
 	return jsonify({});
@@ -483,7 +579,7 @@ def mp():
 
 @app.route("/gm/cp",methods=["POST"])
 def gm_cp():
-	global playercard,lc,gp,bs,dzcp,nmcp;
+	global playercard,lc,gp,bs,dzcp,nmcp,player_list;
 	p=request.form.get("p");
 	p=p.split();
 	p=[int(i)for i in p];
@@ -507,11 +603,16 @@ def gm_cp():
 		player_list[session["index"]]["card"].remove(i);
 	lc+=1;
 	gp=0;
-	if(nv in pdp.X6L):bs*=6;
-	elif(nv[0]in pdp.X2L or nv in pdp.X2L):bs<<=1;
+	flg=0;
+	# if(nv in pdp.X6L):bs*=6;
+	if(nv[0]in pdp.X2L or nv in pdp.X2L):
+		bs<<=1;
+		flg=1;
 	if(player_list[session["index"]]["is_dz"]):dzcp+=1;
 	else:nmcp+=1;
 	player_list[session["index"]]["content"]=get_ct(p);
+	lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+	saveg(0,player_list[session["index"]]["name"],lcd=lcd,dcd=p,msg="(倍数*2)"if flg else"");
 	return jsonify({"msg":""});
 
 @app.route("/login",methods=["GET","POST"])
@@ -519,10 +620,29 @@ def login():
 	if(request.method=="GET"):
 		return render_template("login.html");
 	name=request.form.get("name");
-	if(name=="admin::%s::clear"%password):
-		qf(1);
-		return jsonify({"code":64,"msg":"清房成功!"});
-		
+	uip=request.remote_addr;
+	if(name.lower()in playerban):
+		return jsonify({"code":16,"msg":"您的用户名已被服务器封禁!"});
+	if(uip in ipban):
+		return jsonify({"code":16,"msg":"您的IP地址已被服务器封禁!"});
+	if(enablewhitelist):
+		flag=0;
+		if(not playerwhite and not ipwhite):
+			flag=1;
+		if(enablewhitelist==1 and(playerwhite or ipwhite)):
+			if(name.lower()in playerwhite or uip in ipwhite):
+				flag=1;
+		if(enablewhitelist==2):
+			if(not ipwhite and name.lower()in playerwhite):
+				flag=1;
+			elif(not playerwhite and uip in ipwhite):
+				flag=1;
+			elif(name.lower()in playerwhite and uip in ipwhite):
+				flag=1;
+		if(not flag):
+			return jsonify({"code":16,"msg":"您不在服务器白名单内!"});
+
+
 	if(not re.match("^[0-9a-zA-Z_]{3,16}$",name)):
 		return jsonify({"code":1,"msg":"用户名应为3-16位的字母数字或下划线!"});
 	for i in player_list:
@@ -533,17 +653,85 @@ def login():
 	session["name"]=name;
 	for i in range(len(player_list)):
 		if(player_list[i]is None):
-			player_list[i]={"name":name,"is_dz":0,"card":[],"last_active":get_time(),"content":"","is_ready":0,"is_mp":0,"point":session["point"]if"point"in session else 0};
+			player_list[i]={"name":name,"ip":uip,"is_dz":0,"card":[],"last_active":get_time(),"content":"","is_ready":0,"is_mp":0,"point":session["point"]if"point"in session else 0};
 			if("point"not in session):
 				session["point"]=0;
 			session["index"]=i;
 			break;
 	sendsysmsg("sp");
+	session["ip"]=uip;
+	print("User %s(%s) joined the game."%(name,uip));
 	return jsonify({"code":0,"msg":"登陆成功!"});
+
+@app.route("/admin",methods=["GET","POST"])
+def admin():
+	if(request.method=="GET"):
+		return render_template("admin.html");
+	name=request.form.get("name");
+	password1=request.form.get("password");
+	uip=request.remote_addr;
+	if(password1!=password):
+		print("%s tried to use admin command but failed!"%uip);
+		return jsonify({"code":1,"msg":"密码错误"});
+	cm=name.split();
+	if(not cm):
+		return jsonify({"code":1,"msg":"命令为空!"});
+	if(cm[0]=="clear"):
+		qf(1);
+		print("Game is cleared by %s."%uip);
+		return jsonify({"code":0,"msg":"清房成功!"});
+	if(cm[0]=="kick"):
+		if(len(cm)<2):
+			return jsonify({"code":1,"msg":"命令无效!"});
+		for i in player_list:
+			if(i is None):continue;
+			if(i["name"]==cm[1]):
+				qf(0);
+				print("%s was kicked by %s."%(i["name"],uip));
+				player_list[player_list.index(i)]=None;
+				return jsonify({"code":0,"msg":"玩家已踢出!"});
+		return jsonify({"code":1,"msg":"未找到该玩家!"});
+	if(cm[0]=="reload"):
+		readini(1);
+		print("Initialization file was reloaded by %s"%uip);
+		return jsonify({"code":0,"msg":"配置文件已重载!"});
+	if(cm[0]=="query"):
+		if(len(cm)<2):
+			return jsonify({"code":1,"msg":"命令无效!"});
+		avq=["ip","port","df","bs","time_1","time_2","time_3","time_0","gsave","playerban","ipban","enablewhitelist","playerwhite","ipwhite"];
+		if(cm[1]not in avq):
+			print("%s made a invalid query!"%uip);
+			return jsonify({"code":1,"msg":"命令无效!"});
+		s=str(eval(cm[1]));
+		return jsonify({"code":0,"msg":"%s is %s"%(cm[1],s)});
+	if(cm[0]=="cre"):
+		gr=os.listdir("./replay");
+		for i in gr:
+			os.remove("./replay/%s"%i);
+		return jsonify({"code":0,"msg":"清理成功!"});
+	return jsonify({"code":1,"msg":"命令无效!"});
+		
 
 @app.route("/help")
 def help():
 	return render_template("help.html",time_1=time_1,time_2=time_2,time_3=time_3,bsc=bsc,df=df);
+
+@app.route("/replay")
+def replay():
+	if(not gsave):
+		return"本服务器未启用游戏回放!"
+	li=os.listdir("./replay");
+	return render_template("replay.html",li=li);
+
+@app.route("/replay/<fname>")
+def replay2(fname):
+	if(not gsave):
+		return"本服务器未启用游戏回放!"
+	a=open("./replay/%s"%fname,"r",encoding="utf-8");
+	t=a.read();
+	a.close();
+	return t;
+	
 
 @app.route("/")
 def r():

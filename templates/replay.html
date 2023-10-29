@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>回放</title>
+		<style>
+			#tjbtn{
+				width:300px;
+			}
+			#errmsg{
+				color:#ff0000;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>回放列表</h1>
+		{%for i in li%}
+			<div><a href="/replay/{{i}}">{{i}}</a></div>
+		{%endfor%}
+	</body>
+</html>

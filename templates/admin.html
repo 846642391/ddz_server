@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="UTF-8" />
-		<title>加入游戏</title>
+		<title>管理员</title>
 		<style>
 			#tjbtn{
 				width:300px;
@@ -13,24 +13,25 @@
 		</style>
 	</head>
 	<body>
-		<h1>加入游戏</h1>
-		<p>请输入名称</p>
-		<input id="tjbtn" type="text" placeholder="3-16字母,数字或下划线">
+		<h1>管理员</h1>
+		<p>请输入命令</p>
+		<input id="tjbtn" type="text" placeholder="命令">
+		<input id="tjbtn0" type="password" placeholder="密码">
 		<button onclick="submit()">提交</button>
 		<p id="errmsg"></p>
 		<div>
 			<a href="/help">帮助页面</a>
-			<a href="/replay">游戏回放</a>
 			<a href="https://github.com/846642391/ddz_server">GitHub</a>
 		</div>
 		<script type="text/javascript" src="/static/js/jquery.js"></script>
 		<script>
 			function submit(){
 				let text=document.getElementById("tjbtn").value;
+				let text0=document.getElementById("tjbtn0").value;
 				let ele_errmsg=document.getElementById("errmsg");
-				$.post("/login",{"name":text},function(res){
-					if(res["code"])ele_errmsg.innerHTML=res["msg"];
-					else if(res["code"]===0)window.location.replace("/");
+				$.post("/admin",{"name":text,"password":text0},function(res){
+					ele_errmsg.innerHTML=res["msg"];
+					// else if(res["code"]===0)window.location.replace("/");
 				})
 			}
 		</script>
