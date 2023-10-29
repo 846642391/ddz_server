@@ -383,7 +383,6 @@ def game():
 			player_list[2]["name"],dfl[2],player_list[2]["point"]
 		)
 	);
-	print(saves);
 	getsavehtml(fnm);
 	sendsysmsg("gf");
 	end_time=0;
@@ -440,8 +439,6 @@ def get_btn():
 	if((not is_start)and ps["is_ready"]):ret|=4;
 	if(not any([i>0 for i in tempdz])and sub_process==(1,session["index"])):
 		ret|=36;
-	# if(any([i>0 for i in tempdz])and sub_process==(1,session["index"])):
-	# 	ret|=68;
 	if(any([i>0 for i in tempdz])and sub_process==(1,session["index"])):
 		ret|=68;
 	if(sub_process==(2,0)and jbs[session["index"]]==-1):
@@ -604,7 +601,6 @@ def gm_cp():
 	lc+=1;
 	gp=0;
 	flg=0;
-	# if(nv in pdp.X6L):bs*=6;
 	if(nv[0]in pdp.X2L or nv in pdp.X2L):
 		bs<<=1;
 		flg=1;
