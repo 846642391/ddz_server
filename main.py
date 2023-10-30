@@ -270,7 +270,7 @@ def game():
 		if(end_time-get_time()<0):
 			tempdz[rl]=0;
 			player_list[rl]["content"]="不叫"if not djt else"不抢";
-			lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+			lcd=copy.deepcopy(player_list[rl]["card"]);
 			saveg(0,player_list[i]["name"],lcd,[],"不叫"if not djt else"不抢");
 		if(tempdz[rl]==4):
 			djt=1;
@@ -300,7 +300,7 @@ def game():
 	for i in range(3):
 		if(jbs[i]==-1):
 			player_list[i]["content"]="不加倍";
-			lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+			lcd=copy.deepcopy(player_list[rl]["card"]);
 			saveg(0,player_list[i]["name"],lcd,[],"不加倍");
 	sendsysmsg("gb");
 	sub_process=(3,-1);
@@ -327,12 +327,12 @@ def game():
 				playercard=pdp.verify(gvrg);
 				gp=0;
 				player_list[rl]["content"]=get_ct(gvrg);
-				lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+				lcd=copy.deepcopy(player_list[rl]["card"]);
 				saveg(0,player_list[i]["name"],lcd,gvrg,"");
 				del player_list[rl]["card"][-1];
 			else:
 				player_list[rl]["content"]="不出";
-				lcd=copy.deepcopy(player_list[session["index"]]["card"]);
+				lcd=copy.deepcopy(player_list[rl]["card"]);
 				saveg(0,player_list[rl]["name"],lcd,[],"不出");
 				gp+=1;
 		if(len(player_list[rl]["card"])==0):
@@ -715,15 +715,20 @@ def help():
 @app.route("/replay")
 def replay():
 	if(not gsave):
-		return"本服务器未启用游戏回放!"
-	li=os.listdir("./replay");
+		return"本服务器未启用游戏回放!";
+	if(not os.path.exists("./replay")):
+		return"本服务器无游戏回放!";
+	li=os.listdir("./replay")[::-1];
 	return render_template("replay.html",li=li);
 
 @app.route("/replay/<fname>")
 def replay2(fname):
 	if(not gsave):
-		return"本服务器未启用游戏回放!"
-	a=open("./replay/%s"%fname,"r",encoding="utf-8");
+		return"本服务器未启用游戏回放!";
+	try:
+		a=open("./replay/%s"%fname,"r",encoding="utf-8");
+	except FileNotFoundError:
+		return"不存在此回放文件!";
 	t=a.read();
 	a.close();
 	return t;
