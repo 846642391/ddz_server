@@ -97,12 +97,12 @@ def readini(cz=0):
 	global ip,port,df,bsc,password,gsave,playerban,ipban,enablewhitelist,playerwhite,ipwhite;
 	conf=ConfigParser();
 	inifile=sys.argv[1]if len(sys.argv)>=2 else "ddz.ini";
-	conf.read(inifile,encoding="utf-8");
 	if(not os.path.exists(inifile)):
 		logging.warning("Given initialization file do not exist. Created.");
 		t=open(inifile,"w",encoding="utf-8");
 		t.write(bjini);
 		t.close();
+	conf.read(inifile,encoding="utf-8");
 	if(conf.has_section("option")):
 		if(not cz):
 			ip=conf["option"]["ip"]if conf.has_option("option","ip")else"0.0.0.0";
@@ -350,32 +350,35 @@ def game():
 	dfl=[0,0,0];
 	print("Game ended.");
 	if(dzsl):
+		if(nmcp==0):
+			bs<<=1;
+			player_list[rl]["content"]+="|春天"
+			saveg(1,msg="地主春天(倍数*2)");
 		for i in range(3):
 			if(player_list[i]["is_dz"]):
 				dfl[i]=bs*df*2;
 			else:
 				dfl[i]=-bs*df;
 			player_list[i]["point"]+=dfl[i];
-		if(nmcp==0):
+		
+	if(not dzsl):
+		if(dzcp==1):
 			bs<<=1;
 			player_list[rl]["content"]+="|春天"
-			saveg(1,msg="地主春天(倍数*2)");
-	if(not dzsl):
+			saveg(1,msg="农民春天(倍数*2)");
 		for i in range(3):
 			if(player_list[i]["is_dz"]):
 				dfl[i]=-bs*df*2;
 			else:
 				dfl[i]=bs*df;
 			player_list[i]["point"]+=dfl[i];
-		if(dzcp==1):
-			bs<<=1;
-			player_list[rl]["content"]+="|春天"
-			saveg(1,msg="农民春天(倍数*2)");
+		
 	player_list[0]["content"]+="|得分:%d"%dfl[0];
 	player_list[1]["content"]+="|得分:%d"%dfl[1];
 	player_list[2]["content"]+="|得分:%d"%dfl[2];
 	ft=datetime.now().strftime("%Y-%m-%d %H:%M:%S");
 	saveg(1,msg="结束时间:%s"%ft);
+	saveg(1,msg="本场底分:%d，结束倍数:%d"%(df,bs));
 	saveg(1,
 		msg="玩家得分: %s:%d分(总计%d分)，%s:%d分(总计%d分)，%s:%d分(总计%d分)"%(
 			player_list[0]["name"],dfl[0],player_list[0]["point"],
