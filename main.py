@@ -94,7 +94,7 @@ bjini="[option]\nip=0.0.0.0\nport=80\ndf=1\nbs=15\npassword=\ntime_1=20\ntime_2=
 
 
 def readini(cz=0):
-	global ip,port,df,bsc,password,gsave,playerban,ipban,enablewhitelist,playerwhite,ipwhite;
+	global ip,port,df,bsc,time_0,time_1,time_2,time_3,password,gsave,playerban,ipban,enablewhitelist,playerwhite,ipwhite;
 	conf=ConfigParser();
 	inifile=sys.argv[1]if len(sys.argv)>=2 else "ddz.ini";
 	if(not os.path.exists(inifile)):
@@ -110,10 +110,10 @@ def readini(cz=0):
 			print("Process is running on %s:%d"%(ip,port));
 		df=conf["option"].getint("df")if conf.has_option("option","df")else 1;
 		bsc=conf["option"].getint("bs")if conf.has_option("option","bs")else 15;
-		time_0=conf["option"]["time_0"]if conf.has_option("option","time_0")else 3;
-		time_1=conf["option"]["time_1"]if conf.has_option("option","time_1")else 20;
-		time_2=conf["option"]["time_2"]if conf.has_option("option","time_2")else 20;
-		time_3=conf["option"]["time_3"]if conf.has_option("option","time_3")else 30;
+		time_0=conf["option"].getint("time_0")if conf.has_option("option","time_0")else 3;
+		time_1=conf["option"].getint("time_1")if conf.has_option("option","time_1")else 20;
+		time_2=conf["option"].getint("time_2")if conf.has_option("option","time_2")else 20;
+		time_3=conf["option"].getint("time_3")if conf.has_option("option","time_3")else 30;
 		password=conf["option"]["password"]if conf.has_option("option","password")else"";
 		gsave=conf["option"].getint("gsave")if conf.has_option("option","gsave")else 1;
 		playerban=conf["option"]["playerban"].split()if conf.has_option("option","playerban")else[];
@@ -266,7 +266,7 @@ def game():
 		end_time=get_time(time_1*1000);
 		ftrl=tempdz[rl];
 		while(tempdz[rl]==ftrl and end_time-get_time()>=0):
-			sleep(.75);
+			sleep(.5);
 		if(end_time-get_time()<0):
 			tempdz[rl]=0;
 			player_list[rl]["content"]="不叫"if not djt else"不抢";
@@ -295,7 +295,7 @@ def game():
 	for i in range(3):
 		player_list[i]["content"]="...";
 	while(end_time>=get_time()and any([i==-1 for i in jbs])):
-		sleep(1);
+		sleep(.5);
 		sendsysmsg("sp");
 	for i in range(3):
 		if(jbs[i]==-1):
@@ -319,7 +319,7 @@ def game():
 		if(player_list[rl]["is_mp"]):
 			player_list[rl]["content"]+="|明牌:"+get_ct(player_list[rl]["card"]);
 		while(end_time-get_time()>=0):
-			sleep(.75);
+			sleep(.5);
 			if(lc>nlc):break;
 		else:
 			if(gp>=2):
