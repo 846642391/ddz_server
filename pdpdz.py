@@ -1,11 +1,11 @@
 def _3n(li):
 	li=sorted(li);
-	if((li[0]<<4)==((li[1]<<4)-1)and(li[0]<<4)==((li[2]<<4)-2)and((li[2]<<4)<0xe)):
+	if((li[0]>>4)==((li[1]>>4)-1)and(li[0]>>4)==((li[2]>>4)-2)and((li[2]>>4)<0xe)):
 		return 3;
 	return 1;
 def _31(li):
 	li=sorted(li);
-	if((li[0]<<4)==(li[1]<<4)and(li[0]<<4)==(li[2]<<4)):
+	if((li[0]>>4)==(li[1]>>4)and(li[0]<<4)==(li[2]>>4)):
 		return 3;
 	return 1;
 def _th(li):
