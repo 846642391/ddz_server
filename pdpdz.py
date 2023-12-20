@@ -5,7 +5,7 @@ def _3n(li):
 	return 1;
 def _31(li):
 	li=sorted(li);
-	if((li[0]>>4)==(li[1]>>4)and(li[0]<<4)==(li[2]>>4)):
+	if((li[0]>>4)==(li[1]>>4)and(li[0]>>4)==(li[2]>>4)):
 		return 3;
 	return 1;
 def _th(li):
